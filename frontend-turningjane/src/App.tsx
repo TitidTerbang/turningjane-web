@@ -1,14 +1,12 @@
 import type { Component } from 'solid-js';
-import Navbar from './components/Navbar.tsx';
-import Footer from './components/Footer.tsx';
+import { Router, Route } from '@solidjs/router';
+import Landing from './components/Landing/index.tsx';
 
 const App: Component = () => {
   return (
-    <div class="min-h-screen bg-gray-50">
-      <Navbar />
-      {/* Page Content */}
-      <Footer />
-    </div>
+    <Router>
+      <Route path="/" component={Landing} />
+    </Router>
   );
 };
 

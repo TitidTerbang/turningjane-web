@@ -1,6 +1,6 @@
 import type { Component } from "solid-js";
 import { FontAwesomeIcon } from "solid-fontawesome";
-import { library, Library } from '@fortawesome/fontawesome-svg-core';
+import { library } from '@fortawesome/fontawesome-svg-core';
 import { faSpotify } from "@fortawesome/free-brands-svg-icons";
 
 library.add(faSpotify);

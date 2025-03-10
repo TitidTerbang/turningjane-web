@@ -23,6 +23,7 @@
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@solidjs/router": "^0.15.3",
     "solid-fontawesome": "^0.2.1",
     "solid-js": "^1.9.5"
   }
