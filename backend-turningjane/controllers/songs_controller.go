@@ -19,6 +19,7 @@ func NewSongController(db *sql.DB) *SongController {
 	return &SongController{DB: db}
 }
 
+// ListSongs mengambil daftar semua lagu dari database
 func (c *SongController) ListSongs(ctx *gin.Context) {
 	query := `
 		SELECT s.song_id, s.title, s.artist, s.genre_id, 
@@ -84,7 +85,7 @@ func (c *SongController) ListSongs(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, songs)
 }
 
-// CreateSong creates a new song
+// CreateSong menambahkan lagu baru ke dalam database
 func (c *SongController) CreateSong(ctx *gin.Context) {
 	var req models.CreateSongRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -141,7 +142,7 @@ func (c *SongController) CreateSong(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, song)
 }
 
-// GetSong retrieves a song by ID
+// GetSong mengambil detail lagu berdasarkan ID
 func (c *SongController) GetSong(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -203,7 +204,7 @@ func (c *SongController) GetSong(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, song)
 }
 
-// UpdateSong updates an existing song
+// UpdateSong memperbarui data lagu berdasarkan ID
 func (c *SongController) UpdateSong(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -218,6 +219,7 @@ func (c *SongController) UpdateSong(ctx *gin.Context) {
 		return
 	}
 
+	// Mengambil data lagu saat ini untuk pembaruan selektif
 	var currentTitle string
 	var currentArtist string
 	var currentGenreID sql.NullString
@@ -244,7 +246,6 @@ func (c *SongController) UpdateSong(ctx *gin.Context) {
 		return
 	}
 
-	// Apply updates
 	title := currentTitle
 	if req.Title != nil {
 		title = *req.Title
@@ -276,7 +277,7 @@ func (c *SongController) UpdateSong(ctx *gin.Context) {
 		audioFilePath = currentAudioFilePath.String
 	}
 
-	// Perform update
+	// Menerapkan perubahan hanya jika ada data baru
 	query := `
 		UPDATE songs
 		SET 
@@ -333,7 +334,7 @@ func (c *SongController) UpdateSong(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, song)
 }
 
-// DeleteSong deletes a song by ID
+// DeleteSong menghapus lagu berdasarkan ID
 func (c *SongController) DeleteSong(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)

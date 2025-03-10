@@ -21,7 +21,7 @@ func NewGenreController(db *sql.DB) *GenreController {
 func (c *GenreController) ListGenres(ctx *gin.Context) {
 	rows, err := c.DB.Query("SELECT genre_id, genre_name FROM genres")
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Kesalahan database: %v", err)})
 		return
 	}
 	defer rows.Close()
@@ -30,25 +30,25 @@ func (c *GenreController) ListGenres(ctx *gin.Context) {
 	for rows.Next() {
 		var genre models.Genre
 		if err := rows.Scan(&genre.GenreID, &genre.GenreName); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Scan error: %v", err)})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Kesalahan Scan: %v", err)})
 			return
 		}
 		genres = append(genres, genre)
 	}
 
 	if err = rows.Err(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Rows error: %v", err)})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Kesalahan Rows: %v", err)})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, genres)
 }
 
-// CreateGenre creates a new genre
+// CreateGenre membuat genre baru
 func (c *GenreController) CreateGenre(ctx *gin.Context) {
 	var req models.CreateGenreRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Permintaan tidak valid: %v", err)})
 		return
 	}
 
@@ -59,7 +59,7 @@ func (c *GenreController) CreateGenre(ctx *gin.Context) {
 	).Scan(&genre.GenreID, &genre.GenreName)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Kesalahan database: %v", err)})
 		return
 	}
 

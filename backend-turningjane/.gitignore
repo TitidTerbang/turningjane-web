@@ -1,0 +1,50 @@
+# berkas yang dapat dieksekusi
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+tmp/main
+
+# Biner pengujian, dibuat dengan `go test -c`
+*.test
+
+# Output dari alat cakupan (coverage) go
+*.out
+
+# File workspace Go
+go.work
+
+# Direktori dependensi
+vendor/
+
+# File khusus IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# File environment
+.env
+.env.local
+.env.*.local
+
+# Direktori output biner
+bin/
+dist/
+
+# File debug
+debug/
+tmp/
+
+# File log
+*.log
+
+# Konfigurasi pengembangan lokal
+config.local.yaml
+config.dev.yaml
+
+# Laporan cakupan pengujian
+coverage.html
+coverage.xml

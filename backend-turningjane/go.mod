@@ -9,6 +9,15 @@ require (
 )
 
 require (
+	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/gorilla/context v1.1.2 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/gorilla/sessions v1.2.2 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
+)
+
+require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/air-verse/air v1.61.7 // indirect
 	github.com/bep/godartsass v1.2.0 // indirect
@@ -24,6 +33,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/gin-contrib/cors v1.7.3 // indirect
+	github.com/gin-contrib/sessions v1.0.2
 	github.com/gin-contrib/sse v1.0.0 // indirect
 	github.com/gin-gonic/gin v1.10.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
