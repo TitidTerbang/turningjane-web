@@ -10,6 +10,11 @@ const VideoBackground = () => {
   const [playerRef, setPlayerRef] = createSignal<HTMLDivElement | undefined>();
 
   onMount(() => {
+    const fontLink = document.createElement('link');
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap';
+    fontLink.rel = 'stylesheet';
+    document.head.appendChild(fontLink);
+    
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -101,7 +106,7 @@ const VideoBackground = () => {
       
       {/* Overlay to darken video and add text */}
       <div class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-40 flex items-center justify-center">
-        <h1 class="text-white text-7xl font-bold tracking-wider">
+        <h1 class="text-white text-7xl font-bold tracking-wider" style="font-family: 'Bebas Neue', sans-serif;">
           .TurningJane
         </h1>
       </div>
