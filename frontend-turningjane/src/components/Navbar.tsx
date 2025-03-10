@@ -14,7 +14,7 @@ const Navbar: Component = () => {
                     <div class="flex justify-between h-16">
                         <div class="flex items-center">
                             <div class="flex-shrink-0 flex items-center">
-                                <img src="/src/assets/logo_turningjane.jpeg" alt="TurningJane" class="h-20 w-auto" />
+                                <img src="/src/assets/logo_turningjane.jpeg" alt="TurningJane" class="h-[64px] w-auto" />
                             </div>
                         </div>
                         <div class="flex items-center">

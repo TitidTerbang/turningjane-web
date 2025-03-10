@@ -7,7 +7,6 @@ const Landing: Component = () => {
     return (
         <div class="min-h-screen bg-gray-50">
             <Navbar />
-            {/* Page Content */}
             <VideoBackground />
             <Footer />
         </div>
