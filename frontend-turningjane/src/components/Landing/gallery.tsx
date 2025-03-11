@@ -28,16 +28,15 @@ const Gallery: Component = () => {
   return (
     <div class="min-h-screen bg-gradient-to-b from-black to-gray-900 text-white overflow-hidden">
       {/* Hero Section */}
-      <div class="relative h-64 sm:h-80 md:h-64 overflow-hidden">
+      <div class="relative h-48 sm:h-64 md:h-80 overflow-hidden">
         <div class="absolute inset-0 bg-black/60 z-10" />
-        <div
-          class="absolute inset-0 bg-cover bg-center" />
-        <div class="absolute inset-0 flex items-center justify-center z-20">
+        <div class="absolute inset-0 bg-cover bg-center" />
+        <div class="absolute inset-0 flex items-center justify-center z-20 px-4">
           <Motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            class="text-6xl md:text-8xl font-bold text-white tracking-wider uppercase drop-shadow-lg font-bebasneue"
+            class="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-bold text-white tracking-wider uppercase drop-shadow-lg font-bebasneue text-center"
           >
             <span class="text-gray-400">.TurningJane</span> Gallery
           </Motion.h1>
@@ -45,23 +44,53 @@ const Gallery: Component = () => {
       </div>
 
       {/* Gallery Section with Custom Grid */}
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <style>
           {`
-            .parent {
-              display: grid;
-              grid-template-columns: repeat(6, 1fr);
-              grid-template-rows: repeat(6, 1fr);
-              grid-column-gap: 8px;
-              grid-row-gap: 8px;
-              min-height: 80vh;
+            /* Desktop Grid Layout */
+            @media (min-width: 768px) {
+              .gallery-grid {
+                display: grid;
+                grid-template-columns: repeat(6, 1fr);
+                grid-template-rows: repeat(6, 1fr);
+                grid-column-gap: 8px;
+                grid-row-gap: 8px;
+                min-height: 80vh;
+              }
+              
+              .div1 { grid-area: 1 / 1 / 5 / 3; }
+              .div2 { grid-area: 5 / 1 / 7 / 3; }
+              .div3 { grid-area: 1 / 3 / 7 / 5; }
+              .div4 { grid-area: 1 / 5 / 4 / 7; }
+              .div5 { grid-area: 4 / 5 / 7 / 7; }
             }
-
-            .div1 { grid-area: 1 / 1 / 5 / 3; }
-            .div2 { grid-area: 5 / 1 / 7 / 3; }
-            .div3 { grid-area: 1 / 3 / 7 / 5; }
-            .div4 { grid-area: 1 / 5 / 4 / 7; }
-            .div5 { grid-area: 4 / 5 / 7 / 7; }
+            
+            /* Tablet Grid Layout */
+            @media (min-width: 640px) and (max-width: 767px) {
+              .gallery-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                grid-auto-rows: minmax(180px, auto);
+                gap: 8px;
+              }
+              
+              .div3 {
+                grid-column: span 2;
+              }
+            }
+            
+            /* Mobile Grid Layout */
+            @media (max-width: 639px) {
+              .gallery-grid {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+              }
+              
+              .gallery-grid > div {
+                height: 260px;
+              }
+            }
           `}
         </style>
 
@@ -69,7 +98,7 @@ const Gallery: Component = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: isLoaded() ? 1 : 0 }}
           transition={{ duration: 0.5 }}
-          class="parent"
+          class="gallery-grid"
         >
           <For each={images}>
             {(image, index) => (
@@ -81,7 +110,7 @@ const Gallery: Component = () => {
                 onClick={() => openLightbox(image.src)}
               >
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-4 z-10">
-                  <p class="text-white font-medium truncate">{image.alt}</p>
+                  <p class="text-white font-medium truncate text-sm sm:text-base">{image.alt}</p>
                 </div>
                 <img
                   src={image.src}
@@ -95,7 +124,7 @@ const Gallery: Component = () => {
         </Motion.div>
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox - More Responsive */}
       {selectedImage() && (
         <Motion.div
           initial={{ opacity: 0 }}
@@ -104,14 +133,22 @@ const Gallery: Component = () => {
           class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
           onClick={closeLightbox}
         >
-          <button class="absolute top-4 right-4 text-white text-2xl" onClick={closeLightbox}>
+          <button 
+            class="absolute top-2 right-2 sm:top-4 sm:right-4 text-white text-3xl p-2 z-10" 
+            onClick={(e) => {
+              e.stopPropagation();
+              closeLightbox();
+            }}
+          >
             &times;
           </button>
-          <img
-            src={selectedImage()!}
-            alt="Selected image"
-            class="max-h-[90vh] max-w-full object-contain"
-          />
+          <div class="max-w-full max-h-full relative">
+            <img
+              src={selectedImage()!}
+              alt="Selected image"
+              class="max-h-[80vh] sm:max-h-[85vh] md:max-h-[90vh] max-w-full object-contain"
+            />
+          </div>
         </Motion.div>
       )}
     </div>
