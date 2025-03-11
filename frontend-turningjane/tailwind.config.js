@@ -5,7 +5,11 @@ module.exports = {
     "./index.html"
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        "bebasneue": ["Bebas Neue", "sans-serif"],
+      }
+    },
   },
   plugins: [],
 }
