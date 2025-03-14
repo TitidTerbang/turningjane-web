@@ -52,7 +52,9 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	{
 		// Rute lagu yang dilindungi
 		protected.POST("/songs", songController.CreateSong)
+		protected.POST("/songs/upload", songController.CreateSongWithFiles) // Add route for file upload
 		protected.PUT("/songs/:id", songController.UpdateSong)
+		protected.PUT("/songs/:id/upload", songController.UpdateSongWithFiles) // Add route for updating with files
 		protected.DELETE("/songs/:id", songController.DeleteSong)
 
 		// Rute genre yang dilindungi
