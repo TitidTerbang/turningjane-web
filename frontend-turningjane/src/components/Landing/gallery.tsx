@@ -1,22 +1,111 @@
-import { Component, createSignal, For } from "solid-js";
+import { Component, createSignal, For, onMount } from "solid-js";
 import { Motion } from "@motionone/solid";
+
+// Function to convert image URL to WebP using a client-side approach
+const convertToWebP = async (imageUrl: string): Promise<string> => {
+  try {
+    // Create a new Image object to load the original image
+    const img = new Image();
+    img.crossOrigin = "anonymous"; // Handle CORS issues
+    
+    // Wait for the image to load
+    const imageLoaded = new Promise((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = imageUrl;
+    });
+    
+    const loadedImg = await imageLoaded;
+    
+    // Create a canvas to draw the image
+    const canvas = document.createElement("canvas");
+    canvas.width = (loadedImg as HTMLImageElement).width;
+    canvas.height = (loadedImg as HTMLImageElement).height;
+    
+    // Draw the image on the canvas
+    const ctx = canvas.getContext("2d");
+    ctx?.drawImage(loadedImg as HTMLImageElement, 0, 0);
+    
+    // Convert the canvas content to WebP
+    const webpData = canvas.toDataURL("image/webp", 0.8); // 0.8 quality is a good balance
+    
+    return webpData;
+  } catch (error) {
+    console.error("Error converting to WebP:", error);
+    return imageUrl; // Fallback to original image URL if conversion fails
+  }
+};
 
 const Gallery: Component = () => {
   const [selectedImage, setSelectedImage] = createSignal<string | null>(null);
   const [isLoaded, setIsLoaded] = createSignal(false);
+  const [optimizedImages, setOptimizedImages] = createSignal<Array<{
+    src: string;
+    webpSrc: string;
+    alt: string;
+    gridClass: string;
+    isWebpLoaded: boolean;
+  }>>([]);
 
-  const images = [
-    { src: "https://cdn.creatureandcoagency.com/uploads/2020/04/Save-the-savannah-2.jpg", alt: "Savannah wildlife 1", gridClass: "div1" },
-    { src: "https://cdn.creatureandcoagency.com/uploads/2020/04/Save-the-savannah-5.jpg", alt: "Savannah wildlife 2", gridClass: "div2" },
-    { src: "https://www.science.org/do/10.1126/science.aaz0250/abs/friendship_1280p.jpg", alt: "Wildlife friendship", gridClass: "div3" },
-    { src: "https://i.natgeofe.com/n/d1bd9b23-ed52-4e8c-abb5-049fbe13ac9d/NationalGeographic_2431674_square.jpg", alt: "National Geographic wildlife", gridClass: "div4" },
-    { src: "https://i.ytimg.com/vi/2KkGev-JVIo/maxresdefault.jpg", alt: "Safari animals", gridClass: "div5" },
+  const originalImages = [
+    { src: "https://i.postimg.cc/XvBDhP7x/Screenshot-20250314-100212.png", alt: "Bassura Fest 2024", gridClass: "div1" },
+    { src: "https://i.postimg.cc/NMwbnfnf/IMG-20241020-WA0006.jpg", alt: "Berisik #4", gridClass: "div2" },
+    { src: "https://i.postimg.cc/Qdx26STn/Screenshot-20250314-095818.png", alt: "Opus Fest 2024", gridClass: "div3" },
+    { src: "https://i.postimg.cc/cJc8sxHJ/IMG-6873.avif", alt: "Noisepitch Vol.2", gridClass: "div4" },
+    { src: "https://i.postimg.cc/tC1PhGrr/Screenshot-20250314-100741.png", alt: "Gen.Z Area 2024", gridClass: "div5" },
   ];
 
-  setTimeout(() => setIsLoaded(true), 100);
+  onMount(async () => {
+    // Initialize with original images first
+    setOptimizedImages(originalImages.map(img => ({ 
+      ...img, 
+      webpSrc: img.src,  // Initially set to original
+      isWebpLoaded: false
+    })));
+    
+    // Process images in the background
+    const processImages = async () => {
+      const processedImages = await Promise.all(
+        originalImages.map(async (img) => {
+          try {
+            // Skip conversion for avif images as they're already optimized
+            if (img.src.endsWith('.avif')) {
+              return { 
+                ...img, 
+                webpSrc: img.src, 
+                isWebpLoaded: true 
+              };
+            }
+            
+            const webpSrc = await convertToWebP(img.src);
+            return { 
+              ...img, 
+              webpSrc, 
+              isWebpLoaded: true 
+            };
+          } catch (error) {
+            console.error(`Error processing image ${img.src}:`, error);
+            return { 
+              ...img, 
+              webpSrc: img.src, 
+              isWebpLoaded: false 
+            };
+          }
+        })
+      );
+      
+      setOptimizedImages(processedImages);
+      setIsLoaded(true);
+    };
+    
+    // Start processing images
+    processImages();
+  });
 
   const openLightbox = (src: string) => {
-    setSelectedImage(src);
+    // Always use the best quality image (original) for lightbox
+    const originalSrc = optimizedImages().find(img => img.webpSrc === src)?.src || src;
+    setSelectedImage(originalSrc);
     document.body.style.overflow = "hidden";
   };
 
@@ -25,8 +114,17 @@ const Gallery: Component = () => {
     document.body.style.overflow = "auto";
   };
 
+  // Function to check if the browser supports WebP
+  const isWebPSupported = (): boolean => {
+    const canvas = document.createElement('canvas');
+    if (canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0) {
+      return true;
+    }
+    return false;
+  };
+
   return (
-    <div class="min-h-screen bg-gradient-to-b from-black to-gray-900 text-white overflow-hidden">
+    <div class="min-h-screen bg-black text-white overflow-hidden">
       {/* Hero Section */}
       <div class="relative h-48 sm:h-64 md:h-80 overflow-hidden">
         <div class="absolute inset-0 bg-black/60 z-10" />
@@ -96,24 +194,24 @@ const Gallery: Component = () => {
 
         <Motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: isLoaded() ? 1 : 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           class="gallery-grid"
         >
-          <For each={images}>
+          <For each={optimizedImages()}>
             {(image, index) => (
               <Motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index() * 0.1, duration: 0.4 }}
                 class={`group relative overflow-hidden rounded-lg cursor-pointer ${image.gridClass}`}
-                onClick={() => openLightbox(image.src)}
+                onClick={() => openLightbox(image.webpSrc)}
               >
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-4 z-10">
                   <p class="text-white font-medium truncate text-sm sm:text-base">{image.alt}</p>
                 </div>
                 <img
-                  src={image.src}
+                  src={image.webpSrc}
                   alt={image.alt}
                   class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   loading="lazy"
