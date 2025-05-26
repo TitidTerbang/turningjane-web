@@ -31,7 +31,7 @@ const Footer: Component = () => {
                                 <ul class="mt-4 space-y-3">
                                     <li><a href="#" class="text-base text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">About</a></li>
                                     <li><a href="#" class="text-base text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">Members</a></li>
-                                    <li><a href="#" class="text-base text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">History</a></li>
+                                    <li><a href="/admin/login" class="text-base text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">Admin</a></li>
                                 </ul>
                             </div>
                         </div>
