@@ -184,3 +184,119 @@ func (uc *UserController) GetProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }
+
+// ListAdmins returns all admin users
+func (uc *UserController) ListAdmins(c *gin.Context) {
+	rows, err := uc.DB.Query("SELECT id, email FROM users ORDER BY email ASC")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+	defer rows.Close()
+
+	var admins []map[string]interface{}
+	for rows.Next() {
+		var id, email string
+		if err := rows.Scan(&id, &email); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Scan error"})
+			return
+		}
+
+		admins = append(admins, map[string]interface{}{
+			"id":    id,
+			"email": email,
+		})
+	}
+
+	c.JSON(http.StatusOK, admins)
+}
+
+// CreateAdmin creates a new admin user
+func (uc *UserController) CreateAdmin(c *gin.Context) {
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if email already exists
+	var exists bool
+	err := uc.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", req.Email).Scan(&exists)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	if exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
+		return
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process password"})
+		return
+	}
+
+	// Insert new admin user
+	var userID uuid.UUID
+	err = uc.DB.QueryRow(
+		"INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id",
+		req.Email, string(hashedPassword),
+	).Scan(&userID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create admin"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Admin created successfully",
+		"admin": User{
+			ID:    userID,
+			Email: req.Email,
+		},
+	})
+}
+
+// DeleteAdmin deletes an admin user
+func (uc *UserController) DeleteAdmin(c *gin.Context) {
+	adminID := c.Param("id")
+
+	// Parse UUID
+	id, err := uuid.Parse(adminID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid admin ID"})
+		return
+	}
+
+	// Check if admin exists
+	var exists bool
+	err = uc.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", id).Scan(&exists)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Admin not found"})
+		return
+	}
+
+	// Don't allow deleting yourself
+	currentUserID := c.GetString("user_id")
+	if currentUserID == adminID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete your own account"})
+		return
+	}
+
+	// Delete admin
+	_, err = uc.DB.Exec("DELETE FROM users WHERE id = $1", id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete admin"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Admin deleted successfully"})
+}

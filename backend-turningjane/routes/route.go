@@ -75,6 +75,11 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 		protected.GET("/auth", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "Authorized"})
 		})
+
+		// Rute admin management
+		protected.GET("/admins", userController.ListAdmins)
+		protected.POST("/admins", userController.CreateAdmin)
+		protected.DELETE("/admins/:id", userController.DeleteAdmin)
 	}
 
 	return router
