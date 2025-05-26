@@ -10,23 +10,27 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// User merepresentasikan model pengguna dari database
+// User represents a normal user from database
 type User struct {
 	ID       uuid.UUID `json:"id"`
 	Email    string    `json:"email"`
-	Password string    `json:"-"` // Jangan tampilkan kata sandi dalam respons JSON
+	Password string    `json:"-"` // Don't show password in JSON response
 }
 
-// DB adalah pool koneksi database global
+// Admin represents an admin user from database
+type Admin struct {
+	ID       uuid.UUID `json:"id"`
+	Email    string    `json:"email"`
+	Password string    `json:"-"` // Don't show password in JSON response
+}
+
+// DB is the global database connection pool
 var DB *sql.DB
 
-// Initialize menginisialisasi koneksi database
+// Initialize database connection
 func init() {
-	// Load URL database dari variabel lingkungan
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		// Ini memungkinkan aplikasi untuk berjalan tetapi fungsi-fungsi DB akan gagal
-		// Dalam aplikasi produksi, Anda mungkin ingin gagal dengan cepat di sini
 		return
 	}
 
@@ -36,31 +40,32 @@ func init() {
 		panic(err)
 	}
 
-	// Uji koneksi
 	if err = DB.Ping(); err != nil {
 		panic(err)
 	}
 }
 
-// CreateUser membuat pengguna baru dalam database
+// === USER OPERATIONS ===
+
+// CreateUser creates a new user in the database
 func CreateUser(email, password string) (*User, error) {
-	// Periksa apakah email sudah ada
+	// Check if email already exists
 	var count int
 	err := DB.QueryRow("SELECT COUNT(*) FROM users WHERE email = $1", email).Scan(&count)
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
-		return nil, errors.New("email sudah ada")
+		return nil, errors.New("email already exists")
 	}
 
-	// Hash kata sandi
+	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
-	// Sisipkan pengguna baru
+	// Insert new user
 	var userID uuid.UUID
 	err = DB.QueryRow(
 		"INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id",
@@ -77,7 +82,7 @@ func CreateUser(email, password string) (*User, error) {
 	}, nil
 }
 
-// GetUserByEmail mengembalikan pengguna berdasarkan email
+// GetUserByEmail returns user by email
 func GetUserByEmail(email string) (*User, error) {
 	user := &User{}
 	err := DB.QueryRow(
@@ -86,14 +91,14 @@ func GetUserByEmail(email string) (*User, error) {
 	).Scan(&user.ID, &user.Email, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("pengguna tidak ditemukan")
+			return nil, errors.New("user not found")
 		}
 		return nil, err
 	}
 	return user, nil
 }
 
-// GetUserByID mengembalikan pengguna berdasarkan ID
+// GetUserByID returns user by ID
 func GetUserByID(id uuid.UUID) (*User, error) {
 	user := &User{}
 	err := DB.QueryRow(
@@ -102,15 +107,90 @@ func GetUserByID(id uuid.UUID) (*User, error) {
 	).Scan(&user.ID, &user.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("pengguna tidak ditemukan")
+			return nil, errors.New("user not found")
 		}
 		return nil, err
 	}
 	return user, nil
 }
 
-// VerifyPassword memeriksa apakah kata sandi yang diberikan cocok dengan hash yang disimpan
+// VerifyPassword checks if the given password matches the stored hash
 func (u *User) VerifyPassword(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	return err == nil
+}
+
+// === ADMIN OPERATIONS ===
+
+// CreateAdmin creates a new admin in the database
+func CreateAdmin(email, password string) (*Admin, error) {
+	// Check if email already exists
+	var count int
+	err := DB.QueryRow("SELECT COUNT(*) FROM admins WHERE email = $1", email).Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		return nil, errors.New("admin email already exists")
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
+	// Insert new admin
+	var adminID uuid.UUID
+	err = DB.QueryRow(
+		"INSERT INTO admins (email, password) VALUES ($1, $2) RETURNING id",
+		email, string(hashedPassword),
+	).Scan(&adminID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Admin{
+		ID:       adminID,
+		Email:    email,
+		Password: "",
+	}, nil
+}
+
+// GetAdminByEmail returns admin by email
+func GetAdminByEmail(email string) (*Admin, error) {
+	admin := &Admin{}
+	err := DB.QueryRow(
+		"SELECT id, email, password FROM admins WHERE email = $1",
+		email,
+	).Scan(&admin.ID, &admin.Email, &admin.Password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("admin not found")
+		}
+		return nil, err
+	}
+	return admin, nil
+}
+
+// GetAdminByID returns admin by ID
+func GetAdminByID(id uuid.UUID) (*Admin, error) {
+	admin := &Admin{}
+	err := DB.QueryRow(
+		"SELECT id, email FROM admins WHERE id = $1",
+		id,
+	).Scan(&admin.ID, &admin.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("admin not found")
+		}
+		return nil, err
+	}
+	return admin, nil
+}
+
+// VerifyPassword checks if the given password matches the stored hash
+func (a *Admin) VerifyPassword(password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(password))
 	return err == nil
 }
