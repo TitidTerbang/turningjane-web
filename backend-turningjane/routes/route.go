@@ -65,6 +65,8 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 
 		// Rute genre yang dilindungi
 		protected.POST("/genres", genreController.CreateGenre)
+		protected.PUT("/genres/:id", genreController.UpdateGenre)
+		protected.DELETE("/genres/:id", genreController.DeleteGenre)
 
 		// Rute profil
 		protected.GET("/profile", userController.GetProfile)
