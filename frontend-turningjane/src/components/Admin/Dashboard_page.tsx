@@ -2,6 +2,7 @@ import { Component, createSignal, onMount, Show } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import Swal from 'sweetalert2';
 import GenreAdmin from './GenreAdmin_page.tsx';
+import AdminList from './AdminList_page.tsx';
 
 interface User {
   id: string;
@@ -729,14 +730,7 @@ const Dashboard: Component = () => {
             </Show>
 
             <Show when={activePage() === 'users'}>
-              <div class="bg-white shadow overflow-hidden sm:rounded-md">
-                <div class="flex justify-between items-center p-4 border-b">
-                  <h3 class="text-lg font-medium leading-6 text-gray-900">Users List</h3>
-                </div>
-                <div class="p-6 text-center text-gray-500">
-                  User management feature coming soon
-                </div>
-              </div>
+              <AdminList />
             </Show>
           </div>
         </div>
