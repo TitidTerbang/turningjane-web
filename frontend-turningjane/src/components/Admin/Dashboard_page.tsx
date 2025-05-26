@@ -31,7 +31,16 @@ interface SongFormData {
   release_year: number;
   audio_file: File | null;
   image_file: File | null;
-  image_preview: string | null; // Add preview URL
+  image_preview: string | null;
+}
+
+interface EditSongData {
+  song_id: string;
+  title: string;
+  artist: string;
+  genre_id: string;
+  release_year: number;
+  current_image_path?: string;
 }
 
 const Dashboard: Component = () => {
@@ -41,9 +50,12 @@ const Dashboard: Component = () => {
   const [error, setError] = createSignal('');
   const [user, setUser] = createSignal<User | null>(null);
   const [showModal, setShowModal] = createSignal(false);
+  const [showEditModal, setShowEditModal] = createSignal(false); 
   const [uploading, setUploading] = createSignal(false);
+  const [updating, setUpdating] = createSignal(false); 
   const [deleting, setDeleting] = createSignal<string | null>(null);
   const [genres, setGenres] = createSignal<Genre[]>([]);
+  const [editingSong, setEditingSong] = createSignal<EditSongData | null>(null); // Track editing song
   const [formData, setFormData] = createSignal<SongFormData>({
     title: '',
     artist: '',
@@ -375,6 +387,149 @@ const Dashboard: Component = () => {
     }
   };
 
+  // Handle edit song
+  const handleEditSong = (song: SongData) => {
+    setEditingSong({
+      song_id: song.song_id,
+      title: song.title,
+      artist: song.artist,
+      genre_id: song.genre_id,
+      release_year: song.release_year,
+      current_image_path: song.image_path
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle update song
+  const handleUpdateSong = async (e: Event) => {
+    e.preventDefault();
+    
+    const editData = editingSong();
+    if (!editData) return;
+
+    // Validation
+    if (!editData.title || !editData.artist || !editData.genre_id) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Validation Error',
+        text: 'Please fill in all required fields.',
+      });
+      return;
+    }
+
+    setUpdating(true);
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', editData.title);
+      formDataToSend.append('artist', editData.artist);
+      formDataToSend.append('genre_id', editData.genre_id);
+      formDataToSend.append('release_year', editData.release_year.toString());
+      
+      // Only append image file if a new one was selected
+      const currentFormData = formData();
+      if (currentFormData.image_file) {
+        formDataToSend.append('image_file', currentFormData.image_file);
+      }
+
+      // Log the form data being sent
+      console.log('Updating song with data:');
+      for (let [key, value] of formDataToSend.entries()) {
+        if (value instanceof File) {
+          console.log(key, `File: ${value.name} (${value.size} bytes, ${value.type})`);
+        } else {
+          console.log(key, value);
+        }
+      }
+
+      const response = await fetch(`http://127.0.0.1:3000/api/songs/${editData.song_id}/upload`, {
+        method: 'PUT',
+        credentials: 'include',
+        body: formDataToSend,
+      });
+
+      console.log('Update song response status:', response.status);
+      console.log('Update song response headers:', response.headers.get('content-type'));
+
+      if (!response.ok) {
+        // Try to get the response text first
+        const responseText = await response.text();
+        console.log('Error response text:', responseText);
+        
+        // Try to parse as JSON if it looks like JSON
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          // If it's not JSON, use the text as error message
+          throw new Error(responseText || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        throw new Error(errorData.message || 'Failed to update song');
+      }
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.log('Response is not JSON, content-type:', contentType);
+        const responseText = await response.text();
+        console.log('Non-JSON response text:', responseText);
+        
+        // If the update was successful but response isn't JSON, that's okay for file uploads
+        if (response.status >= 200 && response.status < 300) {
+          console.log('Update successful despite non-JSON response');
+        } else {
+          throw new Error('Server returned unexpected response format');
+        }
+      } else {
+        const result = await response.json();
+        console.log('Update song success response:', result);
+      }
+
+      // Success notification
+      await Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: 'Song has been updated successfully.',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      // Clean up and close modal
+      setShowEditModal(false);
+      setEditingSong(null);
+      
+      // Clean up preview URL if exists
+      if (currentFormData.image_preview) {
+        URL.revokeObjectURL(currentFormData.image_preview);
+      }
+      
+      // Reset form data
+      setFormData({
+        title: '',
+        artist: '',
+        genre_id: '',
+        release_year: new Date().getFullYear(),
+        audio_file: null,
+        image_file: null,
+        image_preview: null
+      });
+      
+      // Refresh songs list
+      await fetchSongs();
+
+    } catch (err) {
+      console.error('Error updating song:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Update Failed',
+        text: err instanceof Error ? err.message : 'Failed to update song. Please try again.',
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   // Handle file input changes
   const handleFileChange = async (field: 'audio_file' | 'image_file', file: File | null) => {
     if (field === 'image_file' && file) {
@@ -539,7 +694,12 @@ const Dashboard: Component = () => {
                           </div>
                         </div>
                         <div class="flex items-center">
-                          <button class="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
+                          <button 
+                            onClick={() => handleEditSong(song)}
+                            class="text-blue-600 hover:text-blue-800 mr-3"
+                          >
+                            Edit
+                          </button>
                           <button
                             onClick={() => handleDeleteSong(song.song_id, song.title)}
                             disabled={deleting() === song.song_id}
@@ -749,6 +909,187 @@ const Dashboard: Component = () => {
                     type="button"
                     onClick={() => setShowModal(false)}
                     disabled={uploading()}
+                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </Show>
+
+            {/* Edit Song Modal */}
+            <Show when={showEditModal()}>
+        <div class="fixed inset-0 z-50 overflow-y-auto">
+          <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowEditModal(false)}></div>
+            
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={handleUpdateSong}>
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div class="sm:flex sm:items-start">
+                    <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                      <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                        Edit Song
+                      </h3>
+                      
+                      <div class="space-y-4">
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700">Title *</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingSong()?.title || ''}
+                            onInput={(e) => setEditingSong(prev => prev ? ({ ...prev, title: e.currentTarget.value }) : null)}
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-3 py-2 border"
+                          />
+                        </div>
+
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700">Artist *</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingSong()?.artist || ''}
+                            onInput={(e) => setEditingSong(prev => prev ? ({ ...prev, artist: e.currentTarget.value }) : null)}
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-3 py-2 border"
+                          />
+                        </div>
+
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700">Genre *</label>
+                          <select
+                            required
+                            value={editingSong()?.genre_id || ''}
+                            onChange={(e) => setEditingSong(prev => prev ? ({ ...prev, genre_id: e.currentTarget.value }) : null)}
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-3 py-2 border"
+                          >
+                            <option value="">Select a genre</option>
+                            {genres().map((genre) => (
+                              <option value={genre.genre_id}>{genre.genre_name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700">Release Year</label>
+                          <input
+                            type="number"
+                            min="1900"
+                            max={new Date().getFullYear()}
+                            value={editingSong()?.release_year || new Date().getFullYear()}
+                            onInput={(e) => setEditingSong(prev => prev ? ({ ...prev, release_year: parseInt(e.currentTarget.value) }) : null)}
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-3 py-2 border"
+                          />
+                        </div>
+
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
+                          
+                          {/* Current Image Preview */}
+                          <Show when={editingSong()?.current_image_path && !formData().image_preview}>
+                            <div class="mb-3">
+                              <img 
+                                src={editingSong()!.current_image_path!} 
+                                alt="Current cover" 
+                                class="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
+                              />
+                              <p class="text-xs text-gray-500 mt-1">Current image</p>
+                            </div>
+                          </Show>
+
+                          {/* New Image Preview */}
+                          <Show when={formData().image_preview}>
+                            <div class="mb-3">
+                              <img 
+                                src={formData().image_preview!} 
+                                alt="New cover preview" 
+                                class="w-32 h-32 object-cover rounded-lg border-2 border-blue-200"
+                              />
+                              <p class="text-xs text-blue-600 mt-1">New image (will replace current)</p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (formData().image_preview) {
+                                    URL.revokeObjectURL(formData().image_preview!);
+                                  }
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    image_file: null, 
+                                    image_preview: null 
+                                  }));
+                                }}
+                                class="mt-2 text-sm text-red-600 hover:text-red-800"
+                              >
+                                Remove New Image
+                              </button>
+                            </div>
+                          </Show>
+                          
+                          {/* File Input */}
+                          <div class="relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileChange('image_file', e.currentTarget.files?.[0] || null)}
+                              class="hidden"
+                              id="edit-image-upload"
+                            />
+                            <label
+                              for="edit-image-upload"
+                              class="cursor-pointer inline-flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                            >
+                              <div class="text-center">
+                                <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <p class="text-sm text-gray-600">
+                                  Click to upload new cover image
+                                </p>
+                                <p class="text-xs text-gray-400 mt-1">
+                                  PNG, JPG, JPEG up to 10MB (will be converted to WebP)
+                                </p>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    disabled={updating()}
+                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Show when={updating()}>
+                      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </Show>
+                    {updating() ? 'Updating...' : 'Update Song'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingSong(null);
+                      // Clean up preview URL if exists
+                      if (formData().image_preview) {
+                        URL.revokeObjectURL(formData().image_preview!);
+                      }
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        image_file: null, 
+                        image_preview: null 
+                      }));
+                    }}
+                    disabled={updating()}
                     class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
