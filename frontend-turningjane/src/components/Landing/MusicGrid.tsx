@@ -58,6 +58,30 @@ const MusicGrid: Component = () => {
     setCurrentlyPlaying(songId);
   };
 
+  // Function to determine grid classes based on number of songs
+  const getGridClasses = () => {
+    const songCount = songs().length;
+    if (songCount === 1) {
+      return "flex justify-center";
+    } else if (songCount === 2) {
+      return "grid grid-cols-2 justify-center gap-6 max-w-2xl mx-auto";
+    } else if (songCount === 3) {
+      return "grid grid-cols-3 justify-center gap-6 max-w-4xl mx-auto";
+    } else {
+      return "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6";
+    }
+  };
+
+  // Function to determine individual card classes based on number of songs
+  const getCardClasses = () => {
+    const songCount = songs().length;
+    if (songCount === 1) {
+      return "bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:scale-105 w-80";
+    } else {
+      return "bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:scale-105";
+    }
+  };
+
   onMount(() => {
     fetchSongs();
   });
@@ -78,10 +102,10 @@ const MusicGrid: Component = () => {
           </div>
         )}
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        <div class={getGridClasses()}>
           <For each={songs()}>
             {(song) => (
-              <div class="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:scale-105">
+              <div class={getCardClasses()}>
                 <div class="relative pb-[100%]">
                   {song.image_path ? (
                     <img 
