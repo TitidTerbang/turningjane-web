@@ -1,6 +1,7 @@
 import { Component, createSignal, onMount, Show } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import Swal from 'sweetalert2';
+import GenreAdmin from './GenreAdmin_page.tsx';
 
 interface User {
   id: string;
@@ -724,19 +725,7 @@ const Dashboard: Component = () => {
             </Show>
 
             <Show when={activePage() === 'genres'}>
-              <div class="bg-white shadow overflow-hidden sm:rounded-md">
-                <div class="flex justify-between items-center p-4 border-b">
-                  <h3 class="text-lg font-medium leading-6 text-gray-900">Genres List</h3>
-                  <button
-                    class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
-                    Add New Genre
-                  </button>
-                </div>
-                <div class="p-6 text-center text-gray-500">
-                  Genre management feature coming soon
-                </div>
-              </div>
+              <GenreAdmin />
             </Show>
 
             <Show when={activePage() === 'users'}>
