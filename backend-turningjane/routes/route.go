@@ -25,8 +25,13 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	})
 	router.Use(sessions.Sessions("auth-session", store))
 
-	// Setup CORS
-	router.Use(cors.Default())
+	// Setup CORS with proper configuration
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:3001"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Accept"}
+	config.AllowCredentials = true
+	router.Use(cors.New(config))
 
 	songController := controllers.NewSongController(db)
 	genreController := controllers.NewGenreController(db)
