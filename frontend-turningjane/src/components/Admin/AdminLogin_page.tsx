@@ -20,6 +20,8 @@ const AdminLogin: Component = () => {
     setError('');
     
     try {
+      console.log('Attempting login with:', { email: email() });
+      
       const response = await fetch('http://127.0.0.1:3000/login', {
         method: 'POST',
         headers: {
@@ -29,18 +31,24 @@ const AdminLogin: Component = () => {
           email: email(),
           password: password(),
         }),
-        credentials: 'include',
+        credentials: 'include', // This ensures cookies are sent and received
       });
       
-      const data = await response.json();
+      console.log('Response status:', response.status);
       
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || 'Login gagal');
       }
       
-      // Login successful
-      navigate('/admin/dashboard'); // Redirect to dashboard
+      const data = await response.json();
+      console.log('Login successful:', data);
+      
+      // Navigate to dashboard immediately after successful login
+      navigate('/admin/dashboard');
+      
     } catch (err) {
+      console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat login');
     } finally {
       setLoading(false);
@@ -63,7 +71,7 @@ const AdminLogin: Component = () => {
                 <div class="flex">
                   <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 101.414 1.414L10 11.414l1.293 1.293a1 1 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                     </svg>
                   </div>
                   <div class="ml-3">

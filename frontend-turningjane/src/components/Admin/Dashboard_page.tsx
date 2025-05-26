@@ -1,4 +1,4 @@
-import { Component, createSignal, createEffect, onMount, Show } from 'solid-js';
+import { Component, createSignal, onMount, Show } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 
 interface User {
@@ -7,45 +7,61 @@ interface User {
 }
 
 interface SongData {
-  id: string;
+  song_id: string;
   title: string;
   artist: string;
+  genre_id: string;
   genre_name: string;
+  release_year: number;
+  audio_file_path: string;
+  image_path: string;
   created_at: string;
 }
 
 const Dashboard: Component = () => {
-  const [user, setUser] = createSignal<User | null>(null);
   const [loading, setLoading] = createSignal(true);
   const [songs, setSongs] = createSignal<SongData[]>([]);
   const [activePage, setActivePage] = createSignal('songs');
   const [error, setError] = createSignal('');
+  const [user, setUser] = createSignal<User | null>(null);
   const navigate = useNavigate();
 
-  const checkAuth = async () => {
+  // Check if auth-session cookie exists
+  const checkAuthCookie = (): boolean => {
+    console.log('Dashboard - All cookies:', document.cookie);
+    const cookies = document.cookie.split(';');
+    const hasAuthCookie = cookies.some(cookie => cookie.trim().startsWith('auth-session='));
+    console.log('Dashboard - Has auth-session cookie:', hasAuthCookie);
+    return hasAuthCookie;
+  };
+
+  // Get current user info from backend
+  const getCurrentUser = async (): Promise<User | null> => {
     try {
-      const response = await fetch('/api/profile', {
+      console.log('Dashboard - Fetching current user...');
+      const response = await fetch('http://127.0.0.1:3000/api/profile', {
         credentials: 'include',
       });
 
+      console.log('Dashboard - User profile response status:', response.status);
+
       if (!response.ok) {
-        // Redirect to login if unauthorized
-        navigate('/admin/login');
-        return;
+        console.log('Dashboard - User profile request failed');
+        return null;
       }
 
       const data = await response.json();
-      setUser(data.user);
+      console.log('Dashboard - User profile data:', data);
+      return data.user;
     } catch (err) {
-      navigate('/admin/login');
-    } finally {
-      setLoading(false);
+      console.error('Dashboard - Get current user error:', err);
+      return null;
     }
   };
 
   const fetchSongs = async () => {
     try {
-      const response = await fetch('/songs', {
+      const response = await fetch('http://127.0.0.1:3000/songs', {
         credentials: 'include',
       });
 
@@ -54,27 +70,49 @@ const Dashboard: Component = () => {
       }
 
       const data = await response.json();
-      setSongs(data.songs || []);
+      console.log('Fetched songs:', data); // Debug log
+      setSongs(data || []); // The API returns an array directly, not wrapped in { songs: [] }
     } catch (err) {
+      console.error('Error fetching songs:', err);
       setError('Failed to load songs');
     }
   };
 
   const handleLogout = async () => {
     try {
-      await fetch('/logout', {
-        method: 'GET',
+      const response = await fetch('http://127.0.0.1:3000/logout', {
+        method: 'POST',
         credentials: 'include',
       });
-      navigate('/admin/login');
+
+      if (response.ok) {
+        // Clear the auth-session cookie
+        document.cookie = 'auth-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        navigate('/admin/login');
+      } else {
+        throw new Error('Logout failed');
+      }
     } catch (err) {
       setError('Failed to logout');
     }
   };
 
-  onMount(() => {
-    checkAuth();
-    fetchSongs();
+  onMount(async () => {
+    console.log('Dashboard - onMount started');
+
+    // Get current user info
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      console.log('Dashboard - No current user found, redirecting to login');
+      navigate('/admin/login');
+      setLoading(false);
+      return;
+    }
+
+    console.log('Dashboard - User authenticated successfully:', currentUser);
+    setUser(currentUser);
+    await fetchSongs();
+    setLoading(false);
   });
 
   return (
@@ -165,11 +203,22 @@ const Dashboard: Component = () => {
                   {songs().length > 0 ? (
                     songs().map((song) => (
                       <li class="px-6 py-4 flex items-center justify-between">
-                        <div>
-                          <p class="text-sm font-medium text-gray-900">{song.title}</p>
-                          <div class="flex mt-1">
-                            <p class="text-sm text-gray-500 mr-4">Artist: {song.artist}</p>
-                            <p class="text-sm text-gray-500">Genre: {song.genre_name}</p>
+                        <div class="flex items-center">
+                          <img 
+                            src={song.image_path} 
+                            alt={song.title}
+                            class="w-12 h-12 rounded object-cover mr-4"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://via.placeholder.com/48x48?text=No+Image';
+                            }}
+                          />
+                          <div>
+                            <p class="text-sm font-medium text-gray-900">{song.title}</p>
+                            <div class="flex mt-1">
+                              <p class="text-sm text-gray-500 mr-4">Artist: {song.artist}</p>
+                              <p class="text-sm text-gray-500 mr-4">Genre: {song.genre_name}</p>
+                              <p class="text-sm text-gray-500">Year: {song.release_year}</p>
+                            </div>
                           </div>
                         </div>
                         <div class="flex">
