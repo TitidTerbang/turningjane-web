@@ -28,7 +28,7 @@ const AdminList: Component = () => {
   const fetchAdmins = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://127.0.0.1:3000/api/admins', {
+      const response = await fetch('http://127.0.0.1:3000/api/admin/', {
         credentials: 'include',
       });
 
@@ -74,7 +74,7 @@ const AdminList: Component = () => {
     setCreating(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:3000/api/admins', {
+      const response = await fetch('http://127.0.0.1:3000/api/admin/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ const AdminList: Component = () => {
       if (result.isConfirmed) {
         setDeleting(adminId);
 
-        const response = await fetch(`http://127.0.0.1:3000/api/admins/${adminId}`, {
+        const response = await fetch(`http://127.0.0.1:3000/api/admin/${adminId}`, {
           method: 'DELETE',
           credentials: 'include',
         });
