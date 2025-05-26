@@ -67,7 +67,7 @@ const GenreAdmin: Component = () => {
     setAdding(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:3000/api/genres', {
+      const response = await fetch('http://127.0.0.1:3000/api/content/genres', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -130,7 +130,7 @@ const GenreAdmin: Component = () => {
     setUpdating(true);
 
     try {
-      const response = await fetch(`http://127.0.0.1:3000/api/genres/${genre.genre_id}`, {
+      const response = await fetch(`http://127.0.0.1:3000/api/content/genres/${genre.genre_id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -186,7 +186,7 @@ const GenreAdmin: Component = () => {
       if (result.isConfirmed) {
         setDeleting(genreId);
 
-        const response = await fetch(`http://127.0.0.1:3000/api/genres/${genreId}`, {
+        const response = await fetch(`http://127.0.0.1:3000/api/content/genres/${genreId}`, {
           method: 'DELETE',
           credentials: 'include',
         });

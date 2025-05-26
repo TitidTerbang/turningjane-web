@@ -181,7 +181,7 @@ const SongAdmin: Component = () => {
         }
       }
 
-      const response = await fetch('http://127.0.0.1:3000/api/songs/upload', {
+      const response = await fetch('http://127.0.0.1:3000/api/content/songs/upload', {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend,
@@ -274,7 +274,7 @@ const SongAdmin: Component = () => {
       if (result.isConfirmed) {
         setDeleting(songId);
 
-        const response = await fetch(`http://127.0.0.1:3000/api/songs/${songId}`, {
+        const response = await fetch(`http://127.0.0.1:3000/api/content/songs/${songId}`, {
           method: 'DELETE',
           credentials: 'include',
         });
@@ -356,7 +356,7 @@ const SongAdmin: Component = () => {
         }
       }
 
-      const response = await fetch(`http://127.0.0.1:3000/api/songs/${editData.song_id}/upload`, {
+      const response = await fetch(`http://127.0.0.1:3000/api/content/songs/${editData.song_id}/upload`, {
         method: 'PUT',
         credentials: 'include',
         body: formDataToSend,
