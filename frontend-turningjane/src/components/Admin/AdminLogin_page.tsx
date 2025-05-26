@@ -1,6 +1,18 @@
 import { Component, createSignal } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 
+// Environment configuration
+const getBackendUrl = () => {
+  // Check if we're in development or production
+  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  
+  if (isDev) {
+    return 'http://127.0.0.1:3000'; // Development backend
+  } else {
+    return 'https://backend-turningjane.vercel.app'; // Production backend
+  }
+};
+
 const AdminLogin: Component = () => {
   const [email, setEmail] = createSignal('');
   const [password, setPassword] = createSignal('');
@@ -20,9 +32,12 @@ const AdminLogin: Component = () => {
     setError('');
     
     try {
-      console.log('Attempting login with:', { email: email() });
+      console.log('Attempting admin login with:', { email: email() });
       
-      const response = await fetch('http://127.0.0.1:3000/login', {
+      const backendUrl = getBackendUrl();
+      console.log('Using backend URL:', backendUrl);
+      
+      const response = await fetch(`${backendUrl}/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,18 +53,18 @@ const AdminLogin: Component = () => {
       
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Login gagal');
+        throw new Error(data.error || 'Admin login gagal');
       }
       
       const data = await response.json();
-      console.log('Login successful:', data);
+      console.log('Admin login successful:', data);
       
-      // Navigate to dashboard immediately after successful login
+      // Navigate to admin dashboard immediately after successful login
       navigate('/admin/dashboard');
       
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat login');
+      console.error('Admin login error:', err);
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat login admin');
     } finally {
       setLoading(false);
     }
@@ -61,6 +76,9 @@ const AdminLogin: Component = () => {
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Admin Login
         </h2>
+        <p class="mt-2 text-center text-sm text-gray-600">
+          Masuk ke panel admin TurningJane
+        </p>
       </div>
 
       <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -85,7 +103,7 @@ const AdminLogin: Component = () => {
             
             <div>
               <label for="email" class="block text-sm font-medium text-gray-700">
-                Email
+                Email Admin
               </label>
               <div class="mt-1">
                 <input
@@ -97,6 +115,7 @@ const AdminLogin: Component = () => {
                   value={email()}
                   onInput={(e) => setEmail(e.currentTarget.value)}
                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="admin@turningjane.com"
                 />
               </div>
             </div>
@@ -125,10 +144,33 @@ const AdminLogin: Component = () => {
                 disabled={loading()}
                 class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading() ? 'Loading...' : 'Masuk'}
+                {loading() ? 'Loading...' : 'Masuk sebagai Admin'}
               </button>
             </div>
           </form>
+          
+          <div class="mt-6">
+            <div class="relative">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300" />
+              </div>
+              <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-white text-gray-500">
+                  Bukan admin?
+                </span>
+              </div>
+            </div>
+            
+            <div class="mt-6">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Login sebagai User
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
