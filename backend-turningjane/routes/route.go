@@ -21,13 +21,14 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 		Path:     "/",
 		MaxAge:   3600 * 24, // umur cookies
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode, // Set to None for CORS support
 	})
 	router.Use(sessions.Sessions("auth-session", store))
 
 	// Setup CORS with proper configuration
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:3001"}
+	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Accept"}
 	config.AllowCredentials = true
