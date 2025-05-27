@@ -14,10 +14,6 @@ const Footer: Component = () => {
                                 <i class="fas fa-map-marker-alt mr-2"></i>
                                 Malang, East Java
                             </p>
-                            <p class="mt-2 text-gray-400">
-                                <i class="fas fa-envelope mr-2"></i>
-                                yudistobat@gmail.com
-                            </p>
                         </div>
                         <div class="grid grid-cols-2 gap-8 sm:grid-cols-2">
                             <div>
@@ -31,7 +27,6 @@ const Footer: Component = () => {
                                 <ul class="mt-4 space-y-3">
                                     <li><a href="#" class="text-base text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">About</a></li>
                                     <li><a href="#" class="text-base text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">Members</a></li>
-                                    <li><a href="/admin/login" class="text-base text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">Admin</a></li>
                                 </ul>
                             </div>
                         </div>
