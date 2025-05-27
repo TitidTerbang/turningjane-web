@@ -3,8 +3,10 @@ package controllers
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -22,6 +24,39 @@ func NewSongController(db *sql.DB) *SongController {
 	return &SongController{
 		DB:            db,
 		StorageConfig: utils.NewSupabaseStorageConfig(),
+	}
+}
+
+// Helper function to check if error is "file not found"
+func (c *SongController) isNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "404") ||
+		strings.Contains(errStr, "not_found") ||
+		strings.Contains(errStr, "object not found") ||
+		strings.Contains(errStr, "nosuchkey")
+}
+
+// Helper function to safely delete file from Supabase storage
+func (c *SongController) safeDeleteFile(filePath string, fileType string) {
+	if filePath == "" {
+		return
+	}
+
+	log.Printf("Attempting to delete %s file: %s", fileType, filePath)
+
+	err := c.StorageConfig.DeleteFile(filePath)
+	if err != nil {
+		if c.isNotFoundError(err) {
+			log.Printf("%s file already deleted or not found: %s", fileType, filePath)
+		} else {
+			log.Printf("Error deleting %s file %s: %v", fileType, filePath, err)
+		}
+	} else {
+		log.Printf("Successfully deleted %s file: %s", fileType, filePath)
 	}
 }
 
@@ -248,10 +283,10 @@ func (c *SongController) CreateSongWithFiles(ctx *gin.Context) {
 	if err != nil {
 		// Cleanup uploaded files on database error
 		if audioFilePath != nil {
-			_ = c.StorageConfig.DeleteFile(*audioFilePath)
+			c.safeDeleteFile(*audioFilePath, "audio")
 		}
 		if imagePath != nil {
-			_ = c.StorageConfig.DeleteFile(*imagePath)
+			c.safeDeleteFile(*imagePath, "image")
 		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
 		return
@@ -582,7 +617,7 @@ func (c *SongController) UpdateSongWithFiles(ctx *gin.Context) {
 
 		// Menghapus file audio lama jika ada
 		if currentAudioFilePath.Valid && currentAudioFilePath.String != "" {
-			_ = c.StorageConfig.DeleteFile(currentAudioFilePath.String)
+			c.safeDeleteFile(currentAudioFilePath.String, "audio")
 		}
 	} else if currentAudioFilePath.Valid {
 		audioFilePath = currentAudioFilePath.String
@@ -601,7 +636,7 @@ func (c *SongController) UpdateSongWithFiles(ctx *gin.Context) {
 
 		// Menghapus file gambar lama jika ada
 		if currentImagePath.Valid && currentImagePath.String != "" {
-			_ = c.StorageConfig.DeleteFile(currentImagePath.String)
+			c.safeDeleteFile(currentImagePath.String, "image")
 		}
 	} else if currentImagePath.Valid {
 		imagePath = currentImagePath.String
@@ -649,10 +684,10 @@ func (c *SongController) UpdateSongWithFiles(ctx *gin.Context) {
 	if err != nil {
 		// Rollback jika gagal update database
 		if audioFilePath != nil && audioFilePath != currentAudioFilePath.String {
-			_ = c.StorageConfig.DeleteFile(audioFilePath.(string))
+			c.safeDeleteFile(audioFilePath.(string), "audio")
 		}
 		if imagePath != nil && imagePath != currentImagePath.String {
-			_ = c.StorageConfig.DeleteFile(imagePath.(string))
+			c.safeDeleteFile(imagePath.(string), "image")
 		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
 		return
@@ -723,21 +758,13 @@ func (c *SongController) DeleteSong(ctx *gin.Context) {
 		return
 	}
 
-	// Hapus file dari storage
-	if audioFilePath.Valid && audioFilePath.String != "" {
-		err = c.StorageConfig.DeleteFile(audioFilePath.String)
-		if err != nil {
-			// Hanya log error, tidak perlu menggagalkan operasi
-			fmt.Printf("Error deleting audio file: %v\n", err)
-		}
+	// Hapus file dari storage dengan safe deletion
+	if audioFilePath.Valid {
+		c.safeDeleteFile(audioFilePath.String, "audio")
 	}
 
-	if imagePath.Valid && imagePath.String != "" {
-		err = c.StorageConfig.DeleteFile(imagePath.String)
-		if err != nil {
-			// Hanya log error, tidak perlu menggagalkan operasi
-			fmt.Printf("Error deleting image file: %v\n", err)
-		}
+	if imagePath.Valid {
+		c.safeDeleteFile(imagePath.String, "image")
 	}
 
 	ctx.Status(http.StatusNoContent)

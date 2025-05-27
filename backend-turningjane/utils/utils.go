@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -105,9 +106,25 @@ func (c *SupabaseStorageConfig) DeleteFile(filePath string) error {
 	// Example: https://your-project.supabase.co/storage/v1/object/public/bucket-name/folder/file.mp3
 	// We need: folder/file.mp3
 
-	parts := filepath.SplitList(filePath)
-	pathParts := parts[len(parts)-2:]
-	relativePath := filepath.Join(pathParts...)
+	// Split URL by "/" and find the parts after "public/bucket-name"
+	parts := strings.Split(filePath, "/")
+
+	// Find the index of "public"
+	publicIndex := -1
+	for i, part := range parts {
+		if part == "public" {
+			publicIndex = i
+			break
+		}
+	}
+
+	if publicIndex == -1 || publicIndex+2 >= len(parts) {
+		return fmt.Errorf("invalid file path format: %s", filePath)
+	}
+
+	// Get everything after "public/bucket-name/"
+	relativeParts := parts[publicIndex+2:]
+	relativePath := strings.Join(relativeParts, "/")
 
 	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.SupabaseURL, c.StorageBucket, relativePath)
 
