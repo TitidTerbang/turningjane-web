@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "solid-fontawesome";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faSpotify } from "@fortawesome/free-brands-svg-icons";
 import { faBars, faXmark, faUser, faTimes, faHandPaper, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
+import Swal from 'sweetalert2';
 
 library.add(faSpotify, faBars, faXmark, faUser, faTimes, faHandPaper, faSignOutAlt);
 
@@ -20,13 +21,19 @@ const Navbar: Component = () => {
         password: '',
         confirmPassword: ''
     });
+
+    // Get the backend URL from environment variables
+    const getBackendUrl = () => {
+        const nodeEnv = import.meta.env.VITE_NODE_ENV;
+        return nodeEnv === 'development' 
+            ? import.meta.env.VITE_DEV_BACKEND_URL 
+            : import.meta.env.VITE_PROD_BACKEND_URL;
+    };
     
     // Check if user is already logged in on component mount
     onMount(async () => {
         try {
-            const backendUrl = import.meta.env.VITE_NODE_ENV === 'production' 
-                ? import.meta.env.VITE_PROD_BACKEND_URL 
-                : import.meta.env.VITE_DEV_BACKEND_URL;
+            const backendUrl = getBackendUrl();
 
             const response = await fetch(`${backendUrl}/api/auth`, {
                 method: 'GET',
@@ -36,7 +43,6 @@ const Navbar: Component = () => {
             if (response.ok) {
                 const result = await response.json();
                 setIsLoggedIn(true);
-                // This line is the problem - result doesn't contain username
                 setUsername(result.username || result.email || 'User');
             }
         } catch (error) {
@@ -84,21 +90,24 @@ const Navbar: Component = () => {
         const data = formData();
         
         if (!isLogin() && data.password !== data.confirmPassword) {
-            alert('Passwords do not match');
+            Swal.fire({
+                icon: 'error',
+                title: 'Password Mismatch',
+                text: 'Passwords do not match',
+                confirmButtonColor: '#3085d6'
+            });
             return;
         }
-
+    
         try {
+            // Remove '/api' prefix since the routes are public
             const endpoint = isLogin() ? '/login' : '/register';
             const payload = isLogin() 
                 ? { email: data.email, password: data.password }
                 : { email: data.email, username: data.username, password: data.password };
-
-            // Use environment variable for backend URL
-            const backendUrl = import.meta.env.VITE_NODE_ENV === 'production' 
-                ? import.meta.env.VITE_PROD_BACKEND_URL 
-                : import.meta.env.VITE_DEV_BACKEND_URL;
-
+    
+            const backendUrl = getBackendUrl();
+    
             const response = await fetch(`${backendUrl}${endpoint}`, {
                 method: 'POST',
                 headers: {
@@ -107,60 +116,99 @@ const Navbar: Component = () => {
                 credentials: 'include',
                 body: JSON.stringify(payload)
             });
-
+    
             const result = await response.json();
             
             if (response.ok) {
-                alert(isLogin() ? 'Login successful!' : 'Registration successful!');
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: isLogin() ? 'Login successful!' : 'Registration successful!',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
                 toggleModal();
                 
                 // Update login state
                 setIsLoggedIn(true);
-                setUsername(result.username || data.username || data.email || 'User');
+                setUsername(result.user?.username || result.username || data.username || data.email || 'User');
                 
-                // Don't reload page, just update state
             } else {
-                alert(result.error || 'Something went wrong');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: result.error || 'Something went wrong',
+                    confirmButtonColor: '#3085d6'
+                });
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Network error occurred');
+            Swal.fire({
+                icon: 'error',
+                title: 'Network Error',
+                text: 'Network error occurred. Please try again.',
+                confirmButtonColor: '#3085d6'
+            });
         }
     };
-
+    
     const handleLogout = async () => {
         try {
-            const backendUrl = import.meta.env.VITE_NODE_ENV === 'production' 
-                ? import.meta.env.VITE_PROD_BACKEND_URL 
-                : import.meta.env.VITE_DEV_BACKEND_URL;
-
-            const response = await fetch(`${backendUrl}/api/logout`, {
-                method: 'POST',
-                credentials: 'include',
+            const result = await Swal.fire({
+                title: 'Logout',
+                text: 'Are you sure you want to logout?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!',
+                cancelButtonText: 'Cancel'
             });
-
-            if (response.ok) {
-                setIsLoggedIn(false);
-                setUsername('');
-                setUserDropdownOpen(false);
-                alert('Logged out successfully!');
-            } else {
-                const errorData = await response.json();
-                alert(errorData.error || 'Logout failed');
+    
+            if (result.isConfirmed) {
+                const backendUrl = getBackendUrl();
+    
+                const response = await fetch(`${backendUrl}/api/logout`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+    
+                if (response.ok) {
+                    setIsLoggedIn(false);
+                    setUsername('');
+                    setUserDropdownOpen(false);
+                    
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Logged Out',
+                        text: 'You have been logged out successfully!',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    const errorData = await response.json();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Logout Failed',
+                        text: errorData.error || 'Logout failed',
+                        confirmButtonColor: '#3085d6'
+                    });
+                }
             }
         } catch (error) {
             console.error('Logout error:', error);
-            alert('Network error occurred');
+            Swal.fire({
+                icon: 'error',
+                title: 'Network Error',
+                text: 'Network error occurred during logout',
+                confirmButtonColor: '#3085d6'
+            });
         }
     };
 
     const handleAdminLogin = () => {
-        // Use environment variable for admin login URL
-        const backendUrl = import.meta.env.VITE_NODE_ENV === 'production' 
-            ? import.meta.env.VITE_PROD_BACKEND_URL 
-            : import.meta.env.VITE_DEV_BACKEND_URL;
-        
-        window.location.href = 'localhost:3000/admin/login';
+        window.location.href = '/admin/login';
     };
 
     return (
