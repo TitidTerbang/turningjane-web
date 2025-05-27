@@ -51,7 +51,7 @@ const Dashboard: Component = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:3000/admin/logout', {
+      const response = await fetch('http://127.0.0.1:3000/api/admin/logout', {
         method: 'POST',
         credentials: 'include',
       });
