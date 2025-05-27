@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"database/sql"
+	"fmt"
+	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -22,6 +25,7 @@ func NewUserController(db *sql.DB) *UserController {
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
+	Username string `json:"username,omitempty"`
 }
 
 // LoginRequest for user login
@@ -32,8 +36,31 @@ type LoginRequest struct {
 
 // User represents a normal user
 type User struct {
-	ID    uuid.UUID `json:"id"`
-	Email string    `json:"email"`
+	ID       uuid.UUID `json:"id"`
+	Email    string    `json:"email"`
+	Username string    `json:"username"`
+}
+
+// generateRandomUsername generates a random username with numbers
+func (uc *UserController) generateRandomUsername() (string, error) {
+	rand.Seed(time.Now().UnixNano())
+
+	for attempts := 0; attempts < 10; attempts++ {
+		username := fmt.Sprintf("user%d", rand.Intn(999999)+100000)
+
+		// Check if username exists
+		var exists bool
+		err := uc.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&exists)
+		if err != nil {
+			return "", err
+		}
+
+		if !exists {
+			return username, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to generate unique username after 10 attempts")
 }
 
 // === USER CRUD OPERATIONS ===
@@ -59,6 +86,28 @@ func (uc *UserController) Register(c *gin.Context) {
 		return
 	}
 
+	// Handle username
+	username := req.Username
+	if username == "" {
+		// Generate random username if not provided
+		username, err = uc.generateRandomUsername()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate username"})
+			return
+		}
+	} else {
+		// Check if username already exists
+		err := uc.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&exists)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			return
+		}
+		if exists {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
+			return
+		}
+	}
+
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -69,8 +118,8 @@ func (uc *UserController) Register(c *gin.Context) {
 	// Insert new user
 	var userID uuid.UUID
 	err = uc.DB.QueryRow(
-		"INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id",
-		req.Email, string(hashedPassword),
+		"INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING id",
+		req.Email, string(hashedPassword), username,
 	).Scan(&userID)
 
 	if err != nil {
@@ -81,8 +130,9 @@ func (uc *UserController) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User registered successfully",
 		"user": User{
-			ID:    userID,
-			Email: req.Email,
+			ID:       userID,
+			Email:    req.Email,
+			Username: username,
 		},
 	})
 }
@@ -99,13 +149,14 @@ func (uc *UserController) Login(c *gin.Context) {
 	var user struct {
 		ID       uuid.UUID
 		Email    string
+		Username string
 		Password string
 	}
 
 	err := uc.DB.QueryRow(
-		"SELECT id, email, password FROM users WHERE email = $1",
+		"SELECT id, email, username, password FROM users WHERE email = $1",
 		req.Email,
-	).Scan(&user.ID, &user.Email, &user.Password)
+	).Scan(&user.ID, &user.Email, &user.Username, &user.Password)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -135,8 +186,9 @@ func (uc *UserController) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
 		"user": User{
-			ID:    user.ID,
-			Email: user.Email,
+			ID:       user.ID,
+			Email:    user.Email,
+			Username: user.Username,
 		},
 	})
 }
@@ -157,9 +209,9 @@ func (uc *UserController) GetProfile(c *gin.Context) {
 
 	var user User
 	err = uc.DB.QueryRow(
-		"SELECT id, email FROM users WHERE id = $1",
+		"SELECT id, email, username FROM users WHERE id = $1",
 		userID,
-	).Scan(&user.ID, &user.Email)
+	).Scan(&user.ID, &user.Email, &user.Username)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -175,7 +227,7 @@ func (uc *UserController) GetProfile(c *gin.Context) {
 
 // ListUsers returns all users (for admin use)
 func (uc *UserController) ListUsers(c *gin.Context) {
-	rows, err := uc.DB.Query("SELECT id, email FROM users ORDER BY email ASC")
+	rows, err := uc.DB.Query("SELECT id, email, username FROM users ORDER BY email ASC")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
@@ -185,7 +237,7 @@ func (uc *UserController) ListUsers(c *gin.Context) {
 	var users []User
 	for rows.Next() {
 		var user User
-		if err := rows.Scan(&user.ID, &user.Email); err != nil {
+		if err := rows.Scan(&user.ID, &user.Email, &user.Username); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Scan error"})
 			return
 		}
@@ -206,6 +258,7 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`
+		Username string `json:"username,omitempty"`
 		Password string `json:"password,omitempty"`
 	}
 
@@ -227,6 +280,20 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 
+	// Check if username already exists (excluding current user) if username is provided
+	if req.Username != "" {
+		err = uc.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1 AND id != $2)", req.Username, id).Scan(&exists)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			return
+		}
+
+		if exists {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
+			return
+		}
+	}
+
 	// Update user
 	if req.Password != "" {
 		// Update with password
@@ -236,14 +303,24 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 			return
 		}
 
-		_, err = uc.DB.Exec("UPDATE users SET email = $1, password = $2 WHERE id = $3", req.Email, string(hashedPassword), id)
+		if req.Username != "" {
+			_, err = uc.DB.Exec("UPDATE users SET email = $1, username = $2, password = $3 WHERE id = $4", req.Email, req.Username, string(hashedPassword), id)
+		} else {
+			_, err = uc.DB.Exec("UPDATE users SET email = $1, password = $2 WHERE id = $3", req.Email, string(hashedPassword), id)
+		}
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 			return
 		}
 	} else {
 		// Update without password
-		_, err = uc.DB.Exec("UPDATE users SET email = $1 WHERE id = $2", req.Email, id)
+		if req.Username != "" {
+			_, err = uc.DB.Exec("UPDATE users SET email = $1, username = $2 WHERE id = $3", req.Email, req.Username, id)
+		} else {
+			_, err = uc.DB.Exec("UPDATE users SET email = $1 WHERE id = $2", req.Email, id)
+		}
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 			return

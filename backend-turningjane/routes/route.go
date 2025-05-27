@@ -49,11 +49,9 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	// User authentication routes
 	router.POST("/register", userController.Register)
 	router.POST("/login", userController.Login)
-	router.POST("/logout", userController.Logout)
 
 	// Admin authentication routes
 	router.POST("/admin/login", adminController.AdminLogin)
-	router.POST("/admin/logout", adminController.AdminLogout)
 
 	// Public routes for songs and genres
 	router.GET("/songs", songController.ListSongs)
@@ -64,6 +62,11 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	protected := router.Group("/api")
 	protected.Use(AuthRequired())
 	{
+		// === GENERAL AUTHENTICATED ROUTES ===
+		// Logout route accessible to both users and admins
+		protected.POST("/logout", userController.Logout)
+		protected.POST("/admin/logout", adminController.AdminLogout)
+
 		// === USER ROUTES ===
 		userRoutes := protected.Group("/users")
 		{
@@ -109,15 +112,57 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 			contentRoutes.DELETE("/genres/:id", genreController.DeleteGenre)
 		}
 
-		// === GENERAL AUTHENTICATED ROUTES ===
-
 		// Auth check route
 		protected.GET("/auth", func(c *gin.Context) {
 			userType, _ := c.Get("user_type")
-			c.JSON(http.StatusOK, gin.H{
-				"message":   "Authorized",
-				"user_type": userType,
-			})
+			userID, _ := c.Get("user_id")
+
+			if userType == "user" {
+				// Get user details from database
+				var user struct {
+					ID       string `json:"id"`
+					Email    string `json:"email"`
+					Username string `json:"username"`
+				}
+
+				err := db.QueryRow("SELECT id, email, username FROM users WHERE id = $1", userID).Scan(&user.ID, &user.Email, &user.Username)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details"})
+					return
+				}
+
+				c.JSON(http.StatusOK, gin.H{
+					"message":   "Authorized",
+					"user_type": userType,
+					"username":  user.Username,
+					"email":     user.Email,
+				})
+			} else if userType == "admin" {
+				// Get admin details from database
+				var admin struct {
+					ID       string `json:"id"`
+					Email    string `json:"email"`
+					Username string `json:"username"`
+				}
+
+				err := db.QueryRow("SELECT id, email, username FROM admins WHERE id = $1", userID).Scan(&admin.ID, &admin.Email, &admin.Username)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get admin details"})
+					return
+				}
+
+				c.JSON(http.StatusOK, gin.H{
+					"message":   "Authorized",
+					"user_type": userType,
+					"username":  admin.Username,
+					"email":     admin.Email,
+				})
+			} else {
+				c.JSON(http.StatusOK, gin.H{
+					"message":   "Authorized",
+					"user_type": userType,
+				})
+			}
 		})
 	}
 
