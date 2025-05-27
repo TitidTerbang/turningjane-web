@@ -24,11 +24,19 @@ const AdminList: Component = () => {
     password: ''
   });
 
+  // Get the backend URL from environment variables
+  const getBackendUrl = () => {
+    const nodeEnv = import.meta.env.VITE_NODE_ENV;
+    return nodeEnv === 'development' 
+      ? import.meta.env.VITE_DEV_BACKEND_URL 
+      : import.meta.env.VITE_PROD_BACKEND_URL;
+  };
+
   // Fetch all admin users
   const fetchAdmins = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://127.0.0.1:3000/api/admin/', {
+      const response = await fetch(`${getBackendUrl()}/api/admin/`, {
         credentials: 'include',
       });
 
@@ -74,7 +82,7 @@ const AdminList: Component = () => {
     setCreating(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:3000/api/admin/', {
+      const response = await fetch(`${getBackendUrl()}/api/admin/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +145,7 @@ const AdminList: Component = () => {
       if (result.isConfirmed) {
         setDeleting(adminId);
 
-        const response = await fetch(`http://127.0.0.1:3000/api/admin/${adminId}`, {
+        const response = await fetch(`${getBackendUrl()}/api/admin/${adminId}`, {
           method: 'DELETE',
           credentials: 'include',
         });

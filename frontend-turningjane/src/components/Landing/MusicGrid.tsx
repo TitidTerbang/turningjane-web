@@ -19,11 +19,22 @@ const MusicGrid: Component = () => {
   const [currentlyPlaying, setCurrentlyPlaying] = createSignal<string | null>(null);
   const [audioPlayer, setAudioPlayer] = createSignal<HTMLAudioElement | null>(null);
 
+  // Get backend URL from environment variables
+  const getBackendUrl = () => {
+    const nodeEnv = import.meta.env.VITE_NODE_ENV;
+    if (nodeEnv === 'development') {
+      return import.meta.env.VITE_DEV_BACKEND_URL;
+    } else {
+      return import.meta.env.VITE_PROD_BACKEND_URL;
+    }
+  };
+
   // Function to fetch songs from your Go backend
   const fetchSongs = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://127.0.0.1:3000/songs');
+      const backendUrl = getBackendUrl();
+      const response = await fetch(`${backendUrl}/songs`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);

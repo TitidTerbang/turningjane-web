@@ -57,9 +57,17 @@ const SongAdmin: Component = () => {
     image_preview: null
   });
 
+  // Get the backend URL from environment variables
+  const getBackendUrl = () => {
+    const nodeEnv = import.meta.env.VITE_NODE_ENV;
+    return nodeEnv === 'development' 
+      ? import.meta.env.VITE_DEV_BACKEND_URL 
+      : import.meta.env.VITE_PROD_BACKEND_URL;
+  };
+
   const fetchSongs = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:3000/songs', {
+      const response = await fetch(`${getBackendUrl()}/songs`, {
         credentials: 'include',
       });
 
@@ -78,7 +86,7 @@ const SongAdmin: Component = () => {
 
   const fetchGenres = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:3000/genres', {
+      const response = await fetch(`${getBackendUrl()}/genres`, {
         credentials: 'include',
       });
 
@@ -181,7 +189,7 @@ const SongAdmin: Component = () => {
         }
       }
 
-      const response = await fetch('http://127.0.0.1:3000/api/content/songs/upload', {
+      const response = await fetch(`${getBackendUrl()}/api/content/songs/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend,
@@ -274,7 +282,7 @@ const SongAdmin: Component = () => {
       if (result.isConfirmed) {
         setDeleting(songId);
 
-        const response = await fetch(`http://127.0.0.1:3000/api/content/songs/${songId}`, {
+        const response = await fetch(`${getBackendUrl()}/api/content/songs/${songId}`, {
           method: 'DELETE',
           credentials: 'include',
         });
@@ -356,7 +364,7 @@ const SongAdmin: Component = () => {
         }
       }
 
-      const response = await fetch(`http://127.0.0.1:3000/api/content/songs/${editData.song_id}/upload`, {
+      const response = await fetch(`${getBackendUrl()}/api/content/songs/${editData.song_id}/upload`, {
         method: 'PUT',
         credentials: 'include',
         body: formDataToSend,

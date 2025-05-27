@@ -16,6 +16,14 @@ const Dashboard: Component = () => {
   const [user, setUser] = createSignal<User | null>(null);
   const navigate = useNavigate();
 
+  // Get the backend URL from environment variables
+  const getBackendUrl = () => {
+    const nodeEnv = import.meta.env.VITE_NODE_ENV;
+    return nodeEnv === 'development' 
+      ? import.meta.env.VITE_DEV_BACKEND_URL 
+      : import.meta.env.VITE_PROD_BACKEND_URL;
+  };
+
   // Check if auth-session cookie exists
   const checkAuthCookie = (): boolean => {
     console.log('Dashboard - All cookies:', document.cookie);
@@ -29,7 +37,7 @@ const Dashboard: Component = () => {
   const getCurrentUser = async (): Promise<User | null> => {
     try {
       console.log('Dashboard - Fetching current admin...');
-      const response = await fetch('http://127.0.0.1:3000/api/admin/profile', {
+      const response = await fetch(`${getBackendUrl()}/api/admin/profile`, {
         credentials: 'include',
       });
 
@@ -51,7 +59,7 @@ const Dashboard: Component = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:3000/api/admin/logout', {
+      const response = await fetch(`${getBackendUrl()}/api/admin/logout`, {
         method: 'POST',
         credentials: 'include',
       });

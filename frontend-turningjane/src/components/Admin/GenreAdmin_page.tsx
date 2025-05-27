@@ -23,11 +23,19 @@ const GenreAdmin: Component = () => {
     genre_name: ''
   });
 
+  // Get the backend URL from environment variables
+  const getBackendUrl = () => {
+    const nodeEnv = import.meta.env.VITE_NODE_ENV;
+    return nodeEnv === 'development' 
+      ? import.meta.env.VITE_DEV_BACKEND_URL 
+      : import.meta.env.VITE_PROD_BACKEND_URL;
+  };
+
   // Fetch genres
   const fetchGenres = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://127.0.0.1:3000/genres', {
+      const response = await fetch(`${getBackendUrl()}/genres`, {
         credentials: 'include',
       });
 
@@ -67,7 +75,7 @@ const GenreAdmin: Component = () => {
     setAdding(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:3000/api/content/genres', {
+      const response = await fetch(`${getBackendUrl()}/api/content/genres`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -130,7 +138,7 @@ const GenreAdmin: Component = () => {
     setUpdating(true);
 
     try {
-      const response = await fetch(`http://127.0.0.1:3000/api/content/genres/${genre.genre_id}`, {
+      const response = await fetch(`${getBackendUrl()}/api/content/genres/${genre.genre_id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -186,7 +194,7 @@ const GenreAdmin: Component = () => {
       if (result.isConfirmed) {
         setDeleting(genreId);
 
-        const response = await fetch(`http://127.0.0.1:3000/api/content/genres/${genreId}`, {
+        const response = await fetch(`${getBackendUrl()}/api/content/genres/${genreId}`, {
           method: 'DELETE',
           credentials: 'include',
         });
