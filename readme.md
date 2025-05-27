@@ -2,22 +2,44 @@
 
 Website Profile untuk Band Turning Jane yang dibangun dengan SolidJS dan Go.
 
-## Struktur Proyek
+## 🚀 Tech Stack
+
+### Frontend
+- **SolidJS** - UI framework yang reaktif dan performan
+- **TypeScript** - Type safety dan developer experience
+- **Vite** - Development server dan build tool
+- **TailwindCSS** - Utility-first CSS framework
+- **FontAwesome** - Icon library
+
+### Backend
+- **Go** - Server-side programming language
+- **Gin** - HTTP web framework untuk Go
+- **PostgreSQL** - Database (hosted di Supabase)
+- **UUID** - Unique identifiers
+
+## 📁 Struktur Proyek
 
 ```
 TurningJane/
 ├── frontend-turningjane/    # Aplikasi frontend SolidJS 
+│   ├── src/
+│   │   ├── assets/         # Logo dan asset statis
+│   │   ├── styles/         # Global CSS
+│   │   ├── App.tsx         # Komponen utama
+│   │   └── index.tsx       # Entry point
+│   ├── package.json
+│   └── index.html
 └── backend-turningjane/     # Server backend Go
 ```
 
-## Frontend
+## 🛠️ Installation & Setup
 
-Frontend dibangun menggunakan:
-- SolidJS
-- TypeScript 
-- Vite
+### Prerequisites
+- Node.js (v16 atau lebih baru)
+- Go (v1.19 atau lebih baru)
+- PostgreSQL atau akses ke Supabase
 
-### Menjalankan Frontend
+### Frontend Setup
 
 ```bash
 cd frontend-turningjane
@@ -25,67 +47,98 @@ npm install
 npm run dev
 ```
 
-Frontend akan berjalan di http://localhost:3000
+Frontend akan berjalan di **http://localhost:3000**
 
-### Build Frontend
+#### Available Scripts
+- `npm run dev` atau `npm start` - Development mode
+- `npm run build` - Build untuk production
+- `npm run serve` - Preview production build
 
-```bash
-npm run build
-npm run preview
-```
-
-## Backend 
-
-Backend dibangun menggunakan:
-- Go
-- Gin (web framework)
-- PostgreSQL (database)
-
-### Menjalankan Backend
+### Backend Setup
 
 ```bash
 cd backend-turningjane
+go mod tidy
 go run main.go
 ```
 
-Backend akan berjalan di http://localhost:3000
+Backend akan berjalan di **http://127.0.0.1:3000**
 
-### Konfigurasi Backend
+### Environment Configuration
 
-File .env berisi konfigurasi:
-- `DATABASE_URL`: Koneksi PostgreSQL ke Supabase
+Buat file `.env` di folder `backend-turningjane`:
+```env
+DATABASE_URL=your_postgresql_connection_string
+PORT=8080
+```
 
-## API Endpoints
+## 📡 API Endpoints
 
-### Songs
-- GET `/songs` - Mendapatkan daftar lagu
-- POST `/songs` - Menambah lagu baru
-- GET `/songs/:id` - Mendapatkan detail lagu
-- PUT `/songs/:id` - Memperbarui lagu
-- DELETE `/songs/:id` - Menghapus lagu
+### Songs Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/songs` | Mendapatkan daftar semua lagu |
+| POST | `/songs` | Menambah lagu baru |
+| GET | `/songs/:id` | Mendapatkan detail lagu berdasarkan ID |
+| PUT | `/songs/:id` | Memperbarui informasi lagu |
+| DELETE | `/songs/:id` | Menghapus lagu |
 
-### Genres
-- GET `/genres` - Mendapatkan daftar genre
-- POST `/genres` - Menambah genre baru
+### Genres Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/genres` | Mendapatkan daftar semua genre |
+| POST | `/genres` | Menambah genre baru |
 
-## Fitur
+## ✨ Fitur
 
-- Manajemen lagu (CRUD)
-- Manajemen genre musik
-- Integrasi dengan Supabase untuk database
-- API RESTful dengan Gin framework
-- CORS support untuk frontend
-- DLL (masih tahap pengembangan)
+- ✅ **Manajemen Lagu (CRUD)** - Create, Read, Update, Delete lagu
+- ✅ **Manajemen Genre Musik** - Kategorisasi lagu berdasarkan genre
+- ✅ **Database Integration** - Integrasi dengan Supabase PostgreSQL
+- ✅ **RESTful API** - API yang mengikuti standar REST
+- ✅ **CORS Support** - Cross-origin resource sharing untuk frontend
+- ✅ **Responsive Design** - Design yang responsive dengan TailwindCSS
+- ✅ **TypeScript Support** - Type safety di frontend
+- 🚧 **Authentication** - **80%** Sistem login/register (dalam pengembangan)
+- 🚧 **File Upload** - **99%** Upload foto dan audio (dalam pengembangan)
+- 🚧 **Admin Dashboard** - **90%** Panel admin untuk manajemen konten (dalam pengembangan)
 
-## Tech Stack
+## 🚀 Deployment
 
-### Frontend
-- SolidJS untuk UI framework
-- TypeScript untuk type safety
-- Vite untuk development dan build tool
+### Frontend Deployment
+Frontend dapat di-deploy ke platform seperti:
+- Netlify
+- Vercel
+- GitHub Pages
+- Surge.sh
 
-### Backend
-- Go untuk server
-- Gin untuk HTTP routing dan middleware
-- PostgreSQL untuk database (hosted di Supabase)
-- UUID untuk unique identifiers
+```bash
+npm run build
+# Upload folder 'dist' ke hosting provider
+```
+
+### Backend Deployment
+Backend dapat di-deploy ke:
+- Heroku
+- Railway
+- Google Cloud Platform
+- DigitalOcean
+
+## 🤝 Contributing
+
+1. Fork repository ini
+2. Buat branch baru (`git checkout -b feature/amazing-feature`)
+3. Commit perubahan (`git commit -m 'Add some amazing feature'`)
+4. Push ke branch (`git push origin feature/amazing-feature`)
+5. Buat Pull Request
+
+## 📝 License
+
+Project ini menggunakan MIT License.
+
+## 📞 Contact
+
+Untuk pertanyaan atau dukungan, silakan hubungi tim pengembang.
+
+---
+
+**Made with ❤️ for Turning Jane Band**
